@@ -1,24 +1,23 @@
 import json
 import os
 import re
+import threading
 import urllib.request
-
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+from pdf_dealer import *
+
 import io
 from argparse import ArgumentParser
 from bs4 import BeautifulSoup
 
-parser = ArgumentParser()
-parser.add_argument('number', type=str)
-parser.add_argument('--output_dir', type=str, default='output')
-args = parser.parse_args()
+strange_semaphore = threading.Semaphore(1)
 
 
-ids = args.number.split(',')
-out = os.path.join('./', args.output_dir)
-if not os.path.exists(out):
-    os.makedirs(out)
-
+ids = None
+out = None
 
 headers = {
     'Host': 'cn.rosco.com',
@@ -57,15 +56,27 @@ ajax%2Cviews%2Fviews.ajax%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%
 module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews. \
 module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews.module'
 
+
+
+failed_num = []
+successed_num = []
+
 def format_html(html, num):
+    global failed_num
+
     soup = BeautifulSoup(html, 'html.parser')
     final_url = []
     for i in soup.findAll(name='div', attrs={'class': 'product-roscolux'}):
         parag = BeautifulSoup(str(i), 'html.parser')
+        if not hasattr(parag.img, 'src'):
+            failed_num.append(num)
+            continue
+
         src = (parag.img)['src']
         number = src.split('/')[-1].split('.')[0]
         if number == num:
             final_url.append(src)
+
 
     return final_url
 
@@ -73,6 +84,8 @@ def get_url_name_and_number_ext(url):
     t,na = url.split('//')[-1].split('/')
     n, e = na.split('.')
     return t,n,e
+
+
 
 def download_url(urls):
     preurl = 'https://cn.rosco.com'
@@ -83,9 +96,19 @@ def download_url(urls):
 
     for idx, u in enumerate(urls):
         filter_type, number, ext = get_url_name_and_number_ext(u)
+        if ext.lower() != 'pdf':
+            if number not in failed_num:
+                failed_num.append(number)
+            print('-- ', idx, f'not pdf! FAILED')
+            continue
+
         outdir = os.path.join(out, f'./{number}', f'./{filter_type}_{number}_{ext}')
         if os.path.exists(outdir):
-            g = input('this is strange, the out file already exists, pls check. Still save?(_/n)')
+            strange_semaphore.acquire()
+            g = input(f'??????? this is strange, the out file {filter_type}_{number}_{ext} already exists, '
+                      f'pls check. Still save?(_/n)\n')
+            strange_semaphore.release()
+
             if g == 'n':
                 continue
         else:
@@ -93,12 +116,16 @@ def download_url(urls):
 
         savepath = f'{outdir}/{filter_type}_{number}.{ext}'
         urllib.request.urlretrieve(u, savepath)
+
+        save_pdf_data(*get_pdf_data(savepath), outdir)
         print('-- ', idx, f'done in {savepath}')
+        successed_num.append(number)
 
 
 def get_url(num):
+    global postform, failed_num
+
     print('='*6, f'deal with number {num}', '='*6)
-    global postform
     url = 'https://cn.rosco.com/zh/views/ajax?_wrapper_format=drupal_ajax'
 
     postform += f'&search={num}'
@@ -107,18 +134,40 @@ def get_url(num):
     res = json.loads(res.text)
     htmldatas = res[2]['data']
     if 'No result found' in htmldatas:
-        print('no result')
+        print(f'{num} no result')
+        failed_num.append(num)
     else:
         img_urls = format_html(htmldatas, num)
         download_url(img_urls)
 
 
-if __name__ == '__main__':
+def start(indexs, outdir):
+    global ids, out
+    ids = indexs.split('.')
+    out = os.path.join('./', outdir)
+    if not os.path.exists(out):
+        os.makedirs(out)
 
+
+    ts = []
     for idx in ids:
-        get_url(idx)
+        thread = threading.Thread(target=get_url, args=(idx, ))
+        thread.start()
+        ts.append(thread)
+
+    for t in ts:
+        t.join()
+
+    print(f'=== failed {len(failed_num)} numbers are', failed_num)
+    print(f'=== successed {len(successed_num)} numbers are', successed_num)
 
 
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('number', type=str)
+    parser.add_argument('--output_dir', type=str, default='output')
+    args = parser.parse_args()
 
+    start(args.number, args.output_dir)
 
 
