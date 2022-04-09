@@ -14,7 +14,7 @@ def get_img_id(path):
     numbers = []
     cnt = 0
     for r in result:
-        if r[1].startswith('#') and len(r[1]) > 1:
+        if r[1].startswith('#') and len(r[1]) > 1 and r[2] >= 0.35:
             cnt += 1
             numbers.append(r[1][1:])
             print(r)
@@ -34,5 +34,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ids_str = get_img_id(args.imgPath)
-    start(ids_str, args.output_dir)
+    # start(ids_str, args.output_dir)
 
