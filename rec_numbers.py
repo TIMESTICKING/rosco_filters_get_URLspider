@@ -28,6 +28,11 @@ def get_img_id(path):
 
 
 if __name__ == '__main__':
-    ids_str = get_img_id(r"rec_number\IMG_3104.jpeg")
-    start(ids_str, 'output')
+    parser = ArgumentParser()
+    parser.add_argument('imgPath', type=str)
+    parser.add_argument('--output_dir', type=str, default='output')
+    args = parser.parse_args()
+
+    ids_str = get_img_id(args.imgPath)
+    start(ids_str, args.output_dir)
 
