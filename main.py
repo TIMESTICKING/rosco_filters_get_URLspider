@@ -1,5 +1,7 @@
 import json
+import os
 import re
+import urllib.request
 
 import requests
 import io
@@ -8,11 +10,14 @@ from bs4 import BeautifulSoup
 
 parser = ArgumentParser()
 parser.add_argument('number', type=str)
+parser.add_argument('--output_dir', type=str, default='output')
 args = parser.parse_args()
 
 
 ids = args.number.split(',')
-
+out = os.path.join('./', args.output_dir)
+if not os.path.exists(out):
+    os.makedirs(out)
 
 
 headers = {
@@ -52,12 +57,47 @@ ajax%2Cviews%2Fviews.ajax%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%
 module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews. \
 module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews.module'
 
-def format_html(html):
+def format_html(html, num):
     soup = BeautifulSoup(html, 'html.parser')
+    final_url = []
     for i in soup.findAll(name='div', attrs={'class': 'product-roscolux'}):
-        print(i)
+        parag = BeautifulSoup(str(i), 'html.parser')
+        src = (parag.img)['src']
+        number = src.split('/')[-1].split('.')[0]
+        if number == num:
+            final_url.append(src)
+
+    return final_url
+
+def get_url_name_and_number_ext(url):
+    t,na = url.split('//')[-1].split('/')
+    n, e = na.split('.')
+    return t,n,e
+
+def download_url(urls):
+    preurl = 'https://cn.rosco.com'
+    urls = list(map(lambda x: preurl + x, urls))
+    print(f'--got {len(urls)} results')
+    print(urls)
+    print('--downloading...')
+
+    for idx, u in enumerate(urls):
+        filter_type, number, ext = get_url_name_and_number_ext(u)
+        outdir = os.path.join(out, f'./{number}', f'./{filter_type}_{number}_{ext}')
+        if os.path.exists(outdir):
+            g = input('this is strange, the out file already exists, pls check. Still save?(_/n)')
+            if g == 'n':
+                continue
+        else:
+            os.makedirs(outdir)
+
+        savepath = f'{outdir}/{filter_type}_{number}.{ext}'
+        urllib.request.urlretrieve(u, savepath)
+        print('-- ', idx, f'done in {savepath}')
+
 
 def get_url(num):
+    print('='*6, f'deal with number {num}', '='*6)
     global postform
     url = 'https://cn.rosco.com/zh/views/ajax?_wrapper_format=drupal_ajax'
 
@@ -69,7 +109,8 @@ def get_url(num):
     if 'No result found' in htmldatas:
         print('no result')
     else:
-        format_html(htmldatas)
+        img_urls = format_html(htmldatas, num)
+        download_url(img_urls)
 
 
 if __name__ == '__main__':
