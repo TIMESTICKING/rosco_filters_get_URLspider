@@ -96,11 +96,6 @@ def download_url(urls):
 
     for idx, u in enumerate(urls):
         filter_type, number, ext = get_url_name_and_number_ext(u)
-        if ext.lower() != 'pdf':
-            if number not in failed_num:
-                failed_num.append(number)
-            print('-- ', idx, f'not pdf! FAILED')
-            continue
 
         outdir = os.path.join(out, f'./{number}', f'./{filter_type}_{number}_{ext}')
         if os.path.exists(outdir):
@@ -108,7 +103,6 @@ def download_url(urls):
             g = input(f'??????? this is strange, the out file {filter_type}_{number}_{ext} already exists, '
                       f'pls check. Still save?(_/n)\n')
             strange_semaphore.release()
-
             if g == 'n':
                 continue
         else:
@@ -116,10 +110,10 @@ def download_url(urls):
 
         savepath = f'{outdir}/{filter_type}_{number}.{ext}'
         urllib.request.urlretrieve(u, savepath)
-
-        save_pdf_data(*get_pdf_data(savepath), outdir)
         print('-- ', idx, f'done in {savepath}')
         successed_num.append(number)
+        if ext.lower() == 'pdf':
+            save_pdf_data(*get_pdf_data(savepath), outdir)
 
 
 def get_url(num):
