@@ -86,9 +86,8 @@ def get_url_name_and_number_ext(url):
     return t,n,e
 
 
-mymatlab: MyMatlab_engine
 
-def download_url(urls):
+def download_url(urls, mymatlab):
     preurl = 'https://cn.rosco.com'
     urls = list(map(lambda x: preurl + x, urls))
     print(f'--got {len(urls)} results')
@@ -121,7 +120,7 @@ def download_url(urls):
         successed_num.append(number)
 
 
-def get_url(num):
+def get_url(num, mymatlab):
     global postform, failed_num
 
     print('='*6, f'deal with number {num}', '='*6)
@@ -137,17 +136,19 @@ def get_url(num):
         failed_num.append(num)
     else:
         img_urls = format_html(htmldatas, num)
-        download_url(img_urls)
+        download_url(img_urls, mymatlab)
 
 
 def start_abatch(idxs):
+    mymatlab = MyMatlab_engine('I:\matlabproj\image_graph_line_to_digital_convert')
     for idx in idxs:
-        get_url(idx)
+        get_url(idx, mymatlab)
+    mymatlab.quit()
+
 
 
 def start(indexs, outdir, max_thread):
-    global ids, out, mymatlab
-    mymatlab = MyMatlab_engine('I:\matlabproj\image_graph_line_to_digital_convert')
+    global ids, out
 
     ids = indexs.split('.')
     out = os.path.join('./', outdir)
@@ -167,7 +168,6 @@ def start(indexs, outdir, max_thread):
 
     print(f'=== failed {len(failed_num)} numbers are', failed_num)
     print(f'=== successed {len(successed_num)} numbers are', successed_num)
-    mymatlab.quit()
 
 
 if __name__ == '__main__':
