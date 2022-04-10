@@ -89,10 +89,13 @@ def get_url_name_and_number_ext(url):
 
 
 
-def download_url(urls, mymatlab, session):
+def download_url(urls, num, mymatlab, session):
     preurl = 'https://cn.rosco.com'
     urls = list(map(lambda x: preurl + x, urls))
-    print(f'--got {len(urls)} results')
+    print(f'--{num} got {len(urls)} results')
+    if len(urls) == 0:
+        noRes_num.append(num)
+        return
     print(urls)
     print('--downloading...')
 
@@ -111,7 +114,6 @@ def download_url(urls, mymatlab, session):
             os.makedirs(outdir)
 
         savepath = f'{outdir}/{filter_type}_{number}.{ext}'
-        # urllib.request.urlretrieve(u, savepath)
         while True:
             try:
                 r = session.get(u, verify=False)
@@ -119,6 +121,7 @@ def download_url(urls, mymatlab, session):
                     break
             except requests.exceptions.ConnectionError as e:
                 print(e)
+                time.sleep(2)
 
         with open(savepath, 'wb') as f:
             f.write(r.content)
@@ -133,7 +136,7 @@ def download_url(urls, mymatlab, session):
 
 
 def get_url(num, mymatlab):
-    global postform, failed_num
+    global postform, failed_num, noRes_num
 
     print('='*6, f'deal with number {num}', '='*6)
     session = requests.session()
@@ -147,6 +150,7 @@ def get_url(num, mymatlab):
                 break
         except requests.exceptions.ConnectionError as e:
             print(e)
+            time.sleep(2)
 
     res = json.loads(res.text)
     htmldatas = res[2]['data']
@@ -156,7 +160,7 @@ def get_url(num, mymatlab):
         noRes_num.append(num)
     else:
         img_urls = format_html(htmldatas, num)
-        download_url(img_urls, mymatlab, session)
+        download_url(img_urls, num, mymatlab, session)
 
     session.close()
 
@@ -190,6 +194,8 @@ def start(indexs, outdir, max_thread):
     for t in ts:
         t.join()
 
+    with open(f'{outdir}/no_res.txt', 'a+') as f:
+        f.write(','.join(noRes_num) + ',')
     print(f'=== failed {len(failed_num)} numbers are', failed_num)
     print(f'=== successed {len(successed_num)} numbers are', successed_num)
     print(f'=== no result {len(noRes_num)} numbers are', noRes_num)
