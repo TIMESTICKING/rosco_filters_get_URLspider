@@ -96,11 +96,6 @@ def download_url(urls):
 
     for idx, u in enumerate(urls):
         filter_type, number, ext = get_url_name_and_number_ext(u)
-        if ext.lower() != 'pdf':
-            if number not in failed_num:
-                failed_num.append(number)
-            print('-- ', idx, f'not pdf! FAILED')
-            continue
 
         outdir = os.path.join(out, f'./{number}', f'./{filter_type}_{number}_{ext}')
         if os.path.exists(outdir):
@@ -116,7 +111,8 @@ def download_url(urls):
         savepath = f'{outdir}/{filter_type}_{number}.{ext}'
         urllib.request.urlretrieve(u, savepath)
 
-        save_pdf_data(*get_pdf_data(savepath), outdir)
+        if ext == 'pdf':
+            save_pdf_data(*get_pdf_data(savepath), outdir)
         print('-- ', idx, f'done in {savepath}')
         successed_num.append(number)
 
@@ -145,14 +141,14 @@ def start_abatch(idxs):
         get_url(idx)
 
 
-def start(indexs, outdir):
+def start(indexs, outdir, max_thread):
     global ids, out
     ids = indexs.split('.')
     out = os.path.join('./', outdir)
     if not os.path.exists(out):
         os.makedirs(out)
 
-    n = int(len(ids) / args.max_thread) + 1
+    n = int(len(ids) / max_thread) + 1
     ids_block = [ids[i:i + n] for i in range(0, len(ids), n)]
     ts = []
     for idxs in ids_block:
@@ -174,6 +170,6 @@ if __name__ == '__main__':
     parser.add_argument('--max_thread', type=int, default=20)
     args = parser.parse_args()
 
-    start(args.number, args.output_dir)
+    start(args.number, args.output_dir, args.max_thread)
 
 
