@@ -2,6 +2,7 @@ import json
 import os
 import re
 import threading
+import time
 import urllib.request
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -60,6 +61,7 @@ module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cviews%2Fviews.module%2Cvi
 
 failed_num = []
 successed_num = []
+noRes_num = []
 
 def format_html(html, num):
     global failed_num
@@ -87,7 +89,7 @@ def get_url_name_and_number_ext(url):
 
 
 
-def download_url(urls, mymatlab):
+def download_url(urls, mymatlab, session):
     preurl = 'https://cn.rosco.com'
     urls = list(map(lambda x: preurl + x, urls))
     print(f'--got {len(urls)} results')
@@ -99,17 +101,27 @@ def download_url(urls, mymatlab):
 
         outdir = os.path.join(out, f'./{number}', f'./{filter_type}_{number}_{ext}')
         if os.path.exists(outdir):
-            strange_semaphore.acquire()
+            # strange_semaphore.acquire()
             g = input(f'??????? this is strange, the out file {filter_type}_{number}_{ext} already exists, '
                       f'pls check. Still save?(_/n)\n')
-            strange_semaphore.release()
+            # strange_semaphore.release()
             if g == 'n':
                 continue
         else:
             os.makedirs(outdir)
 
         savepath = f'{outdir}/{filter_type}_{number}.{ext}'
-        urllib.request.urlretrieve(u, savepath)
+        # urllib.request.urlretrieve(u, savepath)
+        while True:
+            try:
+                r = session.get(u, verify=False)
+                if r.status_code == 200:
+                    break
+            except requests.exceptions.ConnectionError as e:
+                print(e)
+
+        with open(savepath, 'wb') as f:
+            f.write(r.content)
 
         if ext.lower() == 'pdf':
             save_pdf_data(*get_pdf_data(savepath), outdir)
@@ -124,27 +136,38 @@ def get_url(num, mymatlab):
     global postform, failed_num
 
     print('='*6, f'deal with number {num}', '='*6)
+    session = requests.session()
     url = 'https://cn.rosco.com/zh/views/ajax?_wrapper_format=drupal_ajax'
 
     postform += f'&search={num}'
-    res = requests.post(url, data=postform, headers=headers, verify=False)
+    while True:
+        try:
+            res = session.post(url, data=postform, headers=headers, verify=False)
+            if res.status_code == 200:
+                break
+        except requests.exceptions.ConnectionError as e:
+            print(e)
 
     res = json.loads(res.text)
     htmldatas = res[2]['data']
     if 'No result found' in htmldatas:
         print(f'{num} no result')
         failed_num.append(num)
+        noRes_num.append(num)
     else:
         img_urls = format_html(htmldatas, num)
-        download_url(img_urls, mymatlab)
+        download_url(img_urls, mymatlab, session)
+
+    session.close()
+
 
 
 def start_abatch(idxs):
     mymatlab = MyMatlab_engine('I:\matlabproj\image_graph_line_to_digital_convert')
     for idx in idxs:
         get_url(idx, mymatlab)
+        time.sleep(1)
     mymatlab.quit()
-
 
 
 def start(indexs, outdir, max_thread):
@@ -159,8 +182,9 @@ def start(indexs, outdir, max_thread):
     ids_block = [ids[i:i + n] for i in range(0, len(ids), n)]
     ts = []
     for idxs in ids_block:
-        thread = threading.Thread(target=start_abatch, args=(idxs, ))
+        thread = threading.Thread(target=start_abatch, args=(idxs, ), daemon=True)
         thread.start()
+        time.sleep(3)
         ts.append(thread)
 
     for t in ts:
@@ -168,6 +192,7 @@ def start(indexs, outdir, max_thread):
 
     print(f'=== failed {len(failed_num)} numbers are', failed_num)
     print(f'=== successed {len(successed_num)} numbers are', successed_num)
+    print(f'=== no result {len(noRes_num)} numbers are', noRes_num)
 
 
 if __name__ == '__main__':

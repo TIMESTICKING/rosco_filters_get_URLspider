@@ -34,5 +34,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ids_str = get_img_id(args.imgPath)
-    start(ids_str, args.output_dir, 8)
+    start(ids_str, args.output_dir, 4)
 

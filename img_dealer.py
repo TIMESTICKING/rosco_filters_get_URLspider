@@ -31,16 +31,17 @@ def save_img_data(path, root, eng):
         'find_corner' : 0,
         'mark_points' : matlab.double([[0,140],[350,0]])
     }
-    [x, y, _] = eng.imgPlot2digital(path, matlab.double(list(range(380, 721))), '', args, nargout=3)
+    [x, y, viz] = eng.imgPlot2digital(path, matlab.double(list(range(380, 721))), '', args, nargout=3)
+    eng.saveas(viz, f'{root}/xy.jpg', nargout=0)
     eng.close('all', 'hidden')
     x = x[0]
     y = y[0]
     print(x)
     print(y)
-    plt.plot(x, y)
-    plt.savefig(f'{root}/xy.jpg')
+    # plt.plot(x, y)
+    # plt.savefig(f'{root}/xy.jpg')
     sio.savemat(f'{root}/xy.mat', {'x': list(x), 'y': list(y)})
-    # plt.show()
+
 
 
 def save_img_plot(path):
@@ -57,5 +58,6 @@ if __name__ == '__main__':
     # get_img_data(r"I:\python3proj\spider_filters\output\4860\cinegel_4860_jpg\cinegel_4860.jpg")
 
     mymatlab = MyMatlab_engine('I:\matlabproj\image_graph_line_to_digital_convert')
-    save_img_data(r"I:\python3proj\spider_filters\output\12\cinelux_12_jpg\cinelux_12.jpg",r'I:\python3proj\spider_filters\output\12\cinelux_12_jpg',mymatlab.eng)
+    save_img_data(r"I:\python3proj\spider_filters\output\375\cinelux_375_jpg\cinelux_375.jpg",
+                  r"I:\python3proj\spider_filters\output\375\cinelux_375_jpg",mymatlab.eng)
     mymatlab.quit()
