@@ -140,6 +140,11 @@ def get_url(num):
         download_url(img_urls)
 
 
+def start_abatch(idxs):
+    for idx in idxs:
+        get_url(idx)
+
+
 def start(indexs, outdir):
     global ids, out
     ids = indexs.split('.')
@@ -147,10 +152,11 @@ def start(indexs, outdir):
     if not os.path.exists(out):
         os.makedirs(out)
 
-
+    n = int(len(ids) / args.max_thread) + 1
+    ids_block = [ids[i:i + n] for i in range(0, len(ids), n)]
     ts = []
-    for idx in ids:
-        thread = threading.Thread(target=get_url, args=(idx, ))
+    for idxs in ids_block:
+        thread = threading.Thread(target=start_abatch, args=(idxs, ))
         thread.start()
         ts.append(thread)
 
@@ -165,6 +171,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('number', type=str)
     parser.add_argument('--output_dir', type=str, default='output')
+    parser.add_argument('--max_thread', type=int, default=20)
     args = parser.parse_args()
 
     start(args.number, args.output_dir)
