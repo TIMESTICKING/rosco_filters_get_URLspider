@@ -8,7 +8,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from pdf_dealer import *
-
+from img_dealer import *
 import io
 from argparse import ArgumentParser
 from bs4 import BeautifulSoup
@@ -86,6 +86,7 @@ def get_url_name_and_number_ext(url):
     return t,n,e
 
 
+mymatlab: MyMatlab_engine
 
 def download_url(urls):
     preurl = 'https://cn.rosco.com'
@@ -111,8 +112,11 @@ def download_url(urls):
         savepath = f'{outdir}/{filter_type}_{number}.{ext}'
         urllib.request.urlretrieve(u, savepath)
 
-        if ext == 'pdf':
+        if ext.lower() == 'pdf':
             save_pdf_data(*get_pdf_data(savepath), outdir)
+        elif ext.lower() in ['jpg', 'jpeg', 'png']:
+            save_img_plot(savepath)
+            save_img_data(savepath, outdir, mymatlab.eng)
         print('-- ', idx, f'done in {savepath}')
         successed_num.append(number)
 
@@ -142,7 +146,9 @@ def start_abatch(idxs):
 
 
 def start(indexs, outdir, max_thread):
-    global ids, out
+    global ids, out, mymatlab
+    mymatlab = MyMatlab_engine('I:\matlabproj\image_graph_line_to_digital_convert')
+
     ids = indexs.split('.')
     out = os.path.join('./', outdir)
     if not os.path.exists(out):
@@ -161,6 +167,7 @@ def start(indexs, outdir, max_thread):
 
     print(f'=== failed {len(failed_num)} numbers are', failed_num)
     print(f'=== successed {len(successed_num)} numbers are', successed_num)
+    mymatlab.quit()
 
 
 if __name__ == '__main__':
