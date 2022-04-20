@@ -36,8 +36,8 @@ def save_img_data(path, root, eng):
     eng.close('all', 'hidden')
     x = x[0]
     y = y[0]
-    print(x)
-    print(y)
+    # print(x)
+    # print(y)
     # plt.plot(x, y)
     # plt.savefig(f'{root}/xy.jpg')
     sio.savemat(f'{root}/xy.mat', {'x': list(x), 'y': list(y)})

@@ -102,7 +102,7 @@ def download_url(urls, num, mymatlab, session):
     for idx, u in enumerate(urls):
         filter_type, number, ext = get_url_name_and_number_ext(u)
 
-        outdir = os.path.join(out, f'./{number}', f'./{filter_type}_{number}_{ext}')
+        outdir = os.path.join(out, f'./n_{number}', f'./{filter_type}_{number}_{ext}')
         if os.path.exists(outdir):
             # strange_semaphore.acquire()
             g = input(f'??????? this is strange, the out file {filter_type}_{number}_{ext} already exists, '
@@ -127,7 +127,9 @@ def download_url(urls, num, mymatlab, session):
             f.write(r.content)
 
         if ext.lower() == 'pdf':
-            save_pdf_data(*get_pdf_data(savepath), outdir)
+            res = False
+            while not res:
+                res = save_pdf_data(*get_pdf_data(savepath), outdir)
         elif ext.lower() in ['jpg', 'jpeg', 'png']:
             save_img_plot(savepath)
             save_img_data(savepath, outdir, mymatlab.eng)
