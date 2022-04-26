@@ -1,3 +1,5 @@
+import sys
+
 import easyocr
 import os
 import cv2
@@ -7,6 +9,11 @@ import matlab
 import matlab.engine
 import scipy.io as sio
 
+sys.path.append("F:\python3proj\myutils")
+import Online_breakpoint_debug
+
+# md = Online_breakpoint_debug.Online_breakpoint_debug()
+# md.start()
 
 class MyMatlab_engine:
 
@@ -27,9 +34,10 @@ def save_img_data(path, root, eng):
         'max_y':100.,
         'step_x' : 20,
         'step_y' : 10,
-        'thresh_binary' : 0.3,
+        'thresh_binary' : 0.5,
         'find_corner' : 0,
-        'mark_points' : matlab.double([[0,140],[350,0]])
+        'mark_points' : matlab.double([[0,155],[305,0]]),
+        'filter_level': 'medium'
     }
     [x, y, viz] = eng.imgPlot2digital(path, matlab.double(list(range(380, 721))), '', args, nargout=3)
     eng.saveas(viz, f'{root}/xy.jpg', nargout=0)
@@ -46,10 +54,15 @@ def save_img_data(path, root, eng):
 
 def save_img_plot(path):
     im = cv2.imread(path)
-    im = im[152:307, 35:339, :]
+    im = im[150:307, 35:339, :]
+    imbg = cv2.imread("I:\python3proj\spider_filters\perfect_jpg_bg\perfect_colorBG.jpg")
+    imdiff = np.abs(im - imbg)
+    imdiff[imdiff<50] = 255
+
+    # md.goin(locals())
 
     os.remove(path)
-    cv2.imwrite(path, im)
+    cv2.imwrite(path, imdiff)
 
 
 
